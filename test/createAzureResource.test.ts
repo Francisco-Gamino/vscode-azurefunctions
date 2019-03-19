@@ -53,23 +53,6 @@ suite('Create Azure Resources', async function (this: ISuiteCallbackContext): Pr
         ext.tree.dispose();
     });
 
-    test('Create and Delete New Function App', async () => {
-        const resourceName: string = getRandomHexString().toLowerCase(); // storage accounts cannot contain upper case chars
-        resourceGroupsToDelete.push(resourceName);
-
-        const testInputs: string[] = [resourceName, '$(plus) Create new resource group', resourceName, '$(plus) Create new storage account', resourceName, 'West US'];
-        ext.ui = new TestUserInput(testInputs);
-        await vscode.commands.executeCommand('azureFunctions.createFunctionApp');
-        const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
-        const createdApp: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
-        assert.ok(createdApp);
-
-        ext.ui = new TestUserInput([resourceName, DialogResponses.deleteResponse.title, DialogResponses.yes.title]);
-        await vscode.commands.executeCommand('azureFunctions.deleteFunctionApp');
-        const deletedApp: WebSiteManagementModels.Site | undefined = await client.webApps.get(resourceName, resourceName);
-        assert.ifError(deletedApp); // if app was deleted, get() returns null.  assert.ifError throws if the value passed is not null/undefined
-    });
-
     // https://github.com/Microsoft/vscode-azurefunctions/blob/master/docs/api.md#create-function-app
     test('createFunctionApp API', async () => {
         const resourceGroupName: string = getRandomHexString();
