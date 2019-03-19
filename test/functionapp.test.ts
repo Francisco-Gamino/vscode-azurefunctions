@@ -11,18 +11,27 @@ import { AzureTreeDataProvider, DialogResponses, TestAzureAccount, TestUserInput
 import { ext } from '../src/extensionVariables';
 import { FunctionAppProvider } from '../src/tree/FunctionAppProvider';
 import * as fsUtil from '../src/utils/fs';
+import { longRunningTestsEnabled } from './global.test';
 
+// tslint:disable-next-line:max-func-body-length
 suite('Function App actions', async function (this: ISuiteCallbackContext): Promise<void> {
-    this.timeout(20 * 60 * 1000);
-    let resourceName: string;
+    this.timeout(1200 * 1000);
     const resourceGroupsToDelete: string[] = [];
+    const resourceName: string = fsUtil.getRandomHexString().toLowerCase();
     const testAccount: TestAzureAccount = new TestAzureAccount();
-    suiteSetup(async () => {
-        this.timeout(3 * 60 * 1000);
+    suiteSetup(async function (this: IHookCallbackContext): Promise<void> {
+        if (!longRunningTestsEnabled) {
+            this.skip();
+        }
+        this.timeout(120 * 1000);
         await testAccount.signIn();
         ext.tree = new AzureTreeDataProvider(FunctionAppProvider, 'azureFunctions.startTesting', undefined, testAccount);
     });
-    suiteTeardown(async () => {
+    suiteTeardown(async function (this: IHookCallbackContext): Promise<void> {
+        if (!longRunningTestsEnabled) {
+            this.skip();
+        }
+        this.timeout(1200 * 1000);
         const client: ResourceManagementClient = getResourceManagementClient(testAccount);
         for (const resourceGroup of resourceGroupsToDelete) {
             if (await client.resourceGroups.checkExistence(resourceGroup)) {
@@ -35,9 +44,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
             }
         }
     });
-    test('createFunctionApp', async function (this: IHookCallbackContext): Promise<void> {
-        this.timeout(5 * 60 * 1000);
-        resourceName = fsUtil.getRandomHexString();
+    test('createFunctionApp', async () => {
         resourceGroupsToDelete.push(resourceName);
         const testInputs: string[] = [resourceName, '$(plus) Create new resource group', resourceName, '$(plus) Create new storage account', resourceName, 'East US'];
         ext.ui = new TestUserInput(testInputs);
@@ -46,24 +53,21 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
         const createdApp: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
         assert.ok(createdApp);
     });
-    test('stopFunctionApp', async function (this: IHookCallbackContext): Promise<void> {
-        this.timeout(5 * 60 * 1000);
+    test('stopFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName]);
         await vscode.commands.executeCommand('azureFunctions.stopFunctionApp');
         const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
         const createdApp1: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
         assert.equal(createdApp1.state, 'Stopped', 'Function app State is incorrect.');
     });
-    test('startFunctionApp', async function (this: IHookCallbackContext): Promise<void> {
-        this.timeout(5 * 60 * 1000);
+    test('startFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName]);
         await vscode.commands.executeCommand('azureFunctions.startFunctionApp');
         const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
         const createdApp1: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
         assert.equal(createdApp1.state, 'Running', 'Function app State is incorrect.');
     });
-    test('restartFunctionApp', async function (this: IHookCallbackContext): Promise<void> {
-        this.timeout(5 * 60 * 1000);
+    test('restartFunctionApp', async () => {
         let client: WebSiteManagementClient;
         let createdApp1: WebSiteManagementModels.Site;
         ext.ui = new TestUserInput([resourceName]);
@@ -78,8 +82,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
         createdApp1 = await client.webApps.get(resourceName, resourceName);
         assert.equal(createdApp1.state, 'Running', 'Function app State is incorrect.');
     });
-    test('deleteFunctionApp', async function (this: IHookCallbackContext): Promise<void> {
-        this.timeout(5 * 60 * 1000);
+    test('deleteFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName, DialogResponses.deleteResponse.title, DialogResponses.yes.title]);
         await vscode.commands.executeCommand('azureFunctions.deleteFunctionApp');
         const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
