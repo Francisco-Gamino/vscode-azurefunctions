@@ -19,6 +19,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
     const resourceGroupsToDelete: string[] = [];
     const resourceName: string = fsUtil.getRandomHexString().toLowerCase();
     const testAccount: TestAzureAccount = new TestAzureAccount();
+
     suiteSetup(async function (this: IHookCallbackContext): Promise<void> {
         if (!longRunningTestsEnabled) {
             this.skip();
@@ -27,6 +28,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
         await testAccount.signIn();
         ext.tree = new AzureTreeDataProvider(FunctionAppProvider, 'azureFunctions.startTesting', undefined, testAccount);
     });
+
     suiteTeardown(async function (this: IHookCallbackContext): Promise<void> {
         if (!longRunningTestsEnabled) {
             this.skip();
@@ -44,6 +46,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
             }
         }
     });
+
     test('createFunctionApp', async () => {
         resourceGroupsToDelete.push(resourceName);
         const testInputs: string[] = [resourceName, '$(plus) Create new resource group', resourceName, '$(plus) Create new storage account', resourceName, 'East US'];
@@ -53,35 +56,39 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
         const createdApp: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
         assert.ok(createdApp);
     });
+
     test('stopFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName]);
         await vscode.commands.executeCommand('azureFunctions.stopFunctionApp');
         const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
-        const createdApp1: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
-        assert.equal(createdApp1.state, 'Stopped', 'Function app State is incorrect.');
+        const createdApp: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
+        assert.equal(createdApp.state, 'Stopped', `Function App state should be 'Stopped' rather than ${createdApp.state}.`);
     });
+
     test('startFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName]);
         await vscode.commands.executeCommand('azureFunctions.startFunctionApp');
         const client: WebSiteManagementClient = getWebsiteManagementClient(testAccount);
-        const createdApp1: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
-        assert.equal(createdApp1.state, 'Running', 'Function app State is incorrect.');
+        const createdApp: WebSiteManagementModels.Site = await client.webApps.get(resourceName, resourceName);
+        assert.equal(createdApp.state, 'Running', `Function App state should be 'Running' rather than ${createdApp.state}.`);
     });
+
     test('restartFunctionApp', async () => {
         let client: WebSiteManagementClient;
-        let createdApp1: WebSiteManagementModels.Site;
+        let createdApp: WebSiteManagementModels.Site;
         ext.ui = new TestUserInput([resourceName]);
         await vscode.commands.executeCommand('azureFunctions.stopFunctionApp');
         client = getWebsiteManagementClient(testAccount);
-        createdApp1 = await client.webApps.get(resourceName, resourceName);
-        assert.equal(createdApp1.state, 'Stopped', 'Function app State is incorrect.');
+        createdApp = await client.webApps.get(resourceName, resourceName);
+        assert.equal(createdApp.state, 'Stopped', `Function App state should be 'Stopped' rather than ${createdApp.state}.`);
         //'Restart' is disabled after stopping a function app in Azure portal.
         ext.ui = new TestUserInput([resourceName, resourceName]);
         await vscode.commands.executeCommand('azureFunctions.restartFunctionApp');
         client = getWebsiteManagementClient(testAccount);
-        createdApp1 = await client.webApps.get(resourceName, resourceName);
-        assert.equal(createdApp1.state, 'Running', 'Function app State is incorrect.');
+        createdApp = await client.webApps.get(resourceName, resourceName);
+        assert.equal(createdApp.state, 'Running', `Function App state should be 'Running' rather than ${createdApp.state}.`);
     });
+
     test('deleteFunctionApp', async () => {
         ext.ui = new TestUserInput([resourceName, DialogResponses.deleteResponse.title, DialogResponses.yes.title]);
         await vscode.commands.executeCommand('azureFunctions.deleteFunctionApp');
@@ -94,6 +101,7 @@ suite('Function App actions', async function (this: ISuiteCallbackContext): Prom
 function getWebsiteManagementClient(testAccount: TestAzureAccount): WebSiteManagementClient {
     return new WebSiteManagementClient(testAccount.getSubscriptionCredentials(), testAccount.getSubscriptionId());
 }
+
 function getResourceManagementClient(testAccount: TestAzureAccount): ResourceManagementClient {
     return new ResourceManagementClient(testAccount.getSubscriptionCredentials(), testAccount.getSubscriptionId());
 }
